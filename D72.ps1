@@ -1,47 +1,43 @@
-﻿#$MinListe = Get-Content -Path ".\D7_Input\Input.txt"
-$MinListe = Get-Content -Path ".\D7_Input\test.txt"
-
-function FinnBagSomInneholder($MinListe, $BagNavn, [int]$numBags) {
-
+﻿    #$MinListe = Get-Content -Path ".\D7_Input\test.txt"
+    $MinListe = Get-Content -Path ".\D7_Input\Input.txt"
+  
     [regex]$rx_mainbag = ".*(?=\sbags\scontain\s)"
     [regex]$bag_content = "(?<=\sbags\scontain\s).*"
-    [regex]$rx_antall = "\d+"
-    [array]$NewBagNavnArray = @()
-    [array]$NewMinListe = @()
-    [array]$resultat = @()
-    
+    [regex]$rx_antall = "\d"
+    [regex]$rx_sub_bag = "(?<=\d\s).*(?=\sbag)"
+
+function FinnBagInnhold($BagNavn) {
+
+    [int]$BagAntall = 0
+
     foreach ($Line in $MinListe) {
-    
         $Bag = $rx_mainbag.Match($Line).Value
         $content =  $bag_content.Match($Line).Value
 
-        
         if ($Bag -eq $BagNavn) {
-            $NewBagNavnArray += $Bag
             $splitContent = $content.Split(",")
+            
             foreach ($bagUnit in $splitContent) {
-                $numBags += $rx_antall.Match($bagUnit).Value
+                if ($bagUnit.contains("no other bags.")) {
+                    $BagAntall = 0
+                } else {
+                    $subBag = $rx_sub_bag.Match($bagUnit).Value
+                    $Bag_i_bag = $rx_antall.Match($bagUnit).Value -as [int]
+                    $BagAntall = $BagAntall + $Bag_i_bag + ($Bag_i_bag * $(FinnBagInnhold $subBag))
+                }
+
             }
         }
-        
+            
     }
-
-    if ($NewBagNavnArray.Length -eq 0) {
-        $resultat = $numBags
-    } else {
-        foreach ($Innhold in $NewBagNavnArray) {
-            $resultat = $numBags
-            $resultat = FinnBagSomInneholder $MinListe $Innhold $numBags
-        }
-    }
-
-    return $resultat
-
+    return $BagAntall
 }
 
-$minbag = "shiny gold"
-[int]$numBags = 0
-$test = FinnBagSomInneholder $MinListe $minbag
-#Write-Output ($test | sort | Get-Unique)
+
+
+
+[string]$minbag = "shiny gold"
+
+$test = FinnBagInnhold $minbag
 Write-Output "Part 2"
 Write-Output $test
